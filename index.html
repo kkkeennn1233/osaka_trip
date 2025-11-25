@@ -2,15 +2,28 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="京阪紅葉">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="format-detection" content="telephone=no">
     <title>2025 京阪紅葉・家族旅行手冊</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
       body {
         font-family: 'Noto Sans TC', sans-serif;
+        /* Prevent bounce scroll on iOS to feel more like an app */
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
       }
-      /* Custom Print Styles to ensure background colors print */
+      /* Hide scrollbar for cleaner look */
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+      /* Custom Print Styles */
       @media print {
         body {
           -webkit-print-color-adjust: exact;
@@ -33,7 +46,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 text-gray-900">
+  <body class="bg-gray-50 text-gray-900 select-none">
     <div id="root"></div>
   </body>
 </html>
