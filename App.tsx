@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Leaf, ChevronRight, ChevronLeft, Map, Calendar } from 'lucide-react';
+import { Leaf, ChevronRight, ChevronLeft } from 'lucide-react';
 import ItineraryDocument from './components/ItineraryDocument';
 
 export default function App() {
@@ -16,7 +16,7 @@ export default function App() {
     { id: 'day3', label: 'Day 3', date: '12/01', sub: '嵐山' },
     { id: 'day4', label: 'Day 4', date: '12/02', sub: '箕面' },
     { id: 'day5', label: 'Day 5', date: '12/03', sub: '返台' },
-    { id: 'info', label: '必備', date: 'INFO', sub: '住宿/清單' },
+    { id: 'tools', label: '工具', date: 'TOOLS', sub: '匯率/日語' },
   ];
 
   const handleNext = () => {
@@ -99,9 +99,9 @@ export default function App() {
 
         <button 
           onClick={handleNext}
-          disabled={activeTab === 'info'}
+          disabled={activeTab === 'tools'}
           className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'info' 
+            activeTab === 'tools' 
               ? 'text-stone-300 cursor-not-allowed' 
               : 'bg-red-600 text-white hover:bg-red-700 shadow-md active:scale-95'
           }`}

@@ -1,5 +1,5 @@
-import React from 'react';
-import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind, Calculator, Languages, Volume2, RefreshCw, ShoppingCart, Train, MessageCircle, Shirt, CreditCard, HelpCircle } from 'lucide-react';
 
 // --- Weather Data (Historical Average for Late Nov/Early Dec in Kyoto/Osaka) ---
 const WEATHER_DATA: Record<string, { loc: string, tempHigh: number, tempLow: number, condition: string, icon: any, precip: number, note: string }> = {
@@ -10,7 +10,7 @@ const WEATHER_DATA: Record<string, { loc: string, tempHigh: number, tempLow: num
   day5: { loc: 'Osaka', tempHigh: 16, tempLow: 8, condition: 'Sunny', icon: ThermometerSun, precip: 10, note: '市區溫暖，舒適的移動日' },
 };
 
-// --- Reusable Components ---
+// --- Widgets ---
 
 const WeatherWidget = ({ dayId }: { dayId: string }) => {
   const data = WEATHER_DATA[dayId];
@@ -50,6 +50,242 @@ const WeatherWidget = ({ dayId }: { dayId: string }) => {
     </div>
   );
 };
+
+const ExchangeRateWidget = () => {
+  const [jpy, setJpy] = useState<string>('');
+  const [twd, setTwd] = useState<string>('');
+  const [rate, setRate] = useState<number>(0.218); // Default slightly higher for cash sell estimation
+  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+
+  const fetchRate = async () => {
+    setLoading(true);
+    try {
+      // Using a free public API for exchange rates
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/JPY');
+      const data = await response.json();
+      if (data && data.rates && data.rates.TWD) {
+        // Bank of Taiwan Cash Sell is usually slightly higher than mid-market rate
+        // We add a small buffer (~1.5%) to approximate the "Cash Sell" rate
+        const estimatedCashRate = Number((data.rates.TWD * 1.015).toFixed(4));
+        setRate(estimatedCashRate);
+        setLastUpdated(new Date().toLocaleTimeString());
+      }
+    } catch (error) {
+      console.error("Failed to fetch rate", error);
+      alert("無法取得即時匯率，將使用預設值");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchRate();
+  }, []);
+
+  const handleJpyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setJpy(val);
+    if (val && !isNaN(Number(val))) {
+      setTwd((Number(val) * rate).toFixed(0));
+    } else {
+      setTwd('');
+    }
+  };
+
+  const handleTwdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setTwd(val);
+    if (val && !isNaN(Number(val))) {
+      setJpy((Number(val) / rate).toFixed(0));
+    } else {
+      setJpy('');
+    }
+  };
+
+  return (
+    <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 mb-8">
+      <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-green-100 p-1.5 rounded-md text-green-700">
+            <Calculator className="w-5 h-5" />
+          </div>
+          匯率計算機
+        </div>
+        <button 
+          onClick={fetchRate} 
+          disabled={loading}
+          className="text-xs bg-white border border-stone-200 px-2 py-1 rounded-full flex items-center gap-1 text-stone-500 hover:text-green-600 active:scale-95 transition-all"
+        >
+          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? '更新中...' : '更新匯率'}
+        </button>
+      </h3>
+      
+      <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-stone-200 mb-3 shadow-sm focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all">
+        <span className="font-bold text-stone-500 text-sm">JPY ¥</span>
+        <input 
+          type="number" 
+          value={jpy}
+          onChange={handleJpyChange}
+          placeholder="輸入日幣"
+          className="text-right font-mono text-xl font-bold text-stone-800 outline-none w-full ml-4 bg-transparent"
+        />
+      </div>
+
+      <div className="flex justify-center -my-3 z-10 relative">
+        <div className="bg-stone-100 rounded-full p-1.5 border border-stone-200">
+          <RefreshCw className="w-4 h-4 text-stone-400" />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-stone-200 mt-0 shadow-sm focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500 transition-all">
+        <span className="font-bold text-stone-500 text-sm">TWD $</span>
+        <input 
+          type="number" 
+          value={twd}
+          onChange={handleTwdChange}
+          placeholder="輸入台幣"
+          className="text-right font-mono text-xl font-bold text-stone-800 outline-none w-full ml-4 bg-transparent"
+        />
+      </div>
+
+      <div className="mt-3 flex items-center justify-between text-xs text-stone-400 px-1">
+        <span>{lastUpdated ? `更新於: ${lastUpdated}` : '台灣銀行現金賣出估算'}</span>
+        <div className="flex items-center gap-2">
+          <span>匯率:</span>
+          <input 
+            type="number" 
+            value={rate} 
+            step="0.001"
+            onChange={(e) => setRate(Number(e.target.value))}
+            className="w-16 bg-stone-100 rounded px-1 py-0.5 text-right border border-stone-200 text-stone-600"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const JapanesePhraseWidget = () => {
+  const categories = [
+    {
+      id: 'shopping_q',
+      title: '購物詢問 (尺寸/顏色/試穿)',
+      icon: Shirt,
+      color: 'text-indigo-600 bg-indigo-50',
+      phrases: [
+        { cn: '這個多少錢？', jp: 'これ、いくらですか？', romaji: 'Kore, ikura desu ka?' },
+        { cn: '不好意思，請問這個在哪裡？', jp: 'すみません、これ、どこにありますか？', romaji: 'Sumimasen, kore, doko ni arimasu ka?' },
+        { cn: '有大一點的尺寸嗎？', jp: 'もう少し大きいサイズはありますか？', romaji: 'Mō sukoshi ōkii saizu wa arimasu ka?' },
+        { cn: '有其他顏色嗎？', jp: '他の色はありますか？', romaji: 'Hoka no iro wa arimasu ka?' },
+        { cn: '可以試穿嗎？', jp: '試着してもいいですか？', romaji: 'Shichaku shite mo ii desu ka?' },
+      ]
+    },
+    {
+      id: 'checkout',
+      title: '結帳應對 (刷卡/袋子)',
+      icon: CreditCard,
+      color: 'text-pink-600 bg-pink-50',
+      phrases: [
+        { cn: '可以刷卡嗎？', jp: 'クレジットカードは使えますか？', romaji: 'Kurejitto kādo wa tsukaemasu ka?' },
+        { cn: '有免稅嗎？', jp: '免税はありますか？', romaji: 'Menzei wa arimasu ka?' },
+        { cn: '(店員問) 需要袋子嗎？', jp: '袋は必要ですか？', romaji: 'Fukuro wa hitsuyō desu ka?', isQuestion: true },
+        { cn: '沒關係，不用了。(拒絕)', jp: 'いえ、大丈夫です。', romaji: 'Ie, daijōbu desu.' },
+        { cn: '好的，麻煩裝袋。(答應)', jp: 'はい、お願いします。', romaji: 'Hai, onegaishimasu.' },
+      ]
+    },
+    {
+      id: 'hotel',
+      title: '飯店 / 寄放行李',
+      icon: Hotel,
+      color: 'text-blue-600 bg-blue-50',
+      phrases: [
+        { cn: '我是網路預約的。', jp: 'ネットで予約しました。', romaji: 'Netto de yoyaku shimashita.' },
+        { cn: '麻煩幫我 Check-in。', jp: 'チェックイン、お願いします。', romaji: 'Chekku-in, onegaishimasu.' },
+        { cn: '可以寄放行李嗎？(入住前/後)', jp: '荷物を預けてもいいですか？', romaji: 'Nimotsu o azukete mo ii desu ka?' },
+        { cn: '可以麻煩保管行李嗎？', jp: '荷物を預かってもらえますか？', romaji: 'Nimotsu o azukatte moraemasu ka?' },
+      ]
+    },
+    {
+      id: 'survival',
+      title: '生存萬用 (廁所/謝謝)',
+      icon: HelpCircle,
+      color: 'text-orange-600 bg-orange-50',
+      phrases: [
+        { cn: '不好意思...', jp: 'すみません...', romaji: 'Sumimasen...' },
+        { cn: '廁所在哪裡？', jp: 'トイレはどこですか？', romaji: 'Toire wa doko desu ka?' },
+        { cn: '謝謝', jp: 'ありがとうございます', romaji: 'Arigatō gozaimasu' },
+        { cn: '聽不懂', jp: 'わかりません', romaji: 'Wakarimasen' },
+      ]
+    }
+  ];
+
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Cancel previous speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.85; // Slightly slower for clarity
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert("您的瀏覽器不支援發音功能");
+    }
+  };
+
+  return (
+    <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 mb-8">
+      <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
+        <div className="bg-indigo-100 p-1.5 rounded-md text-indigo-700">
+          <Languages className="w-5 h-5" />
+        </div>
+        手指日語 (點擊發音)
+      </h3>
+
+      <div className="space-y-6">
+        {categories.map((cat) => {
+          const CatIcon = cat.icon;
+          return (
+            <div key={cat.id}>
+              <h4 className={`text-sm font-bold mb-3 flex items-center gap-2 px-1 ${cat.color.split(' ')[0]}`}>
+                <CatIcon className="w-4 h-4" />
+                {cat.title}
+              </h4>
+              <div className="grid grid-cols-1 gap-2">
+                {cat.phrases.map((p, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => speak(p.jp)}
+                    className={`flex items-center justify-between bg-white p-3 rounded-lg border shadow-sm hover:shadow-md active:scale-[0.98] transition-all text-left group
+                      ${p.isQuestion ? 'border-amber-200 bg-amber-50/30' : 'border-stone-200 hover:border-red-200'}
+                    `}
+                  >
+                    <div className="w-full">
+                      <div className="flex justify-between items-start">
+                        <div className={`text-sm font-bold mb-0.5 ${p.isQuestion ? 'text-amber-700' : 'text-stone-800'}`}>
+                          {p.isQuestion && <span className="bg-amber-100 text-amber-700 text-[10px] px-1 rounded mr-1">聽</span>}
+                          {p.cn}
+                        </div>
+                        <div className="bg-stone-50 p-1.5 rounded-full text-stone-300 group-hover:text-red-500 group-hover:bg-red-50 transition-colors shrink-0 ml-2">
+                           <Volume2 className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="text-xs text-stone-500 font-mono mb-1 font-medium">{p.romaji}</div>
+                      <div className="text-sm text-stone-700 font-medium">{p.jp}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  );
+};
+
+// --- Reusable Layout Components ---
 
 const DayHeader = ({ dayId, day, date, title, tags, accommodation }: { dayId?: string, day: string, date: string, title: string, tags: string[], accommodation?: string }) => (
   <div className="mb-6 animate-fade-in">
@@ -399,14 +635,17 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
         </div>
       )}
 
-      {/* INFO CONTENT */}
-      {activeTab === 'info' && (
+      {/* TOOLS & INFO CONTENT */}
+      {activeTab === 'tools' && (
         <div className="animate-slide-up">
            <div className="mb-6">
-            <h2 className="text-2xl font-bold text-stone-800 mb-2">必備資訊</h2>
-            <p className="text-stone-500">出發前請再次確認</p>
+            <h2 className="text-2xl font-bold text-stone-800 mb-2">旅行工具箱</h2>
+            <p className="text-stone-500">生存必備 & 實用資訊</p>
             <hr className="mt-4 border-stone-100" />
           </div>
+
+          <ExchangeRateWidget />
+          <JapanesePhraseWidget />
 
           <div className="space-y-6">
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-6">
