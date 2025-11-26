@@ -169,6 +169,19 @@ const ExchangeRateWidget = () => {
 };
 
 const JapanesePhraseWidget = () => {
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    // 解決 iOS/Chrome 語音列表讀取延遲問題
+    const loadVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      setVoices(v);
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
+
   const categories = [
     {
       id: 'shopping_q',
@@ -181,6 +194,7 @@ const JapanesePhraseWidget = () => {
         { cn: '有大一點的尺寸嗎？', jp: 'もう少し大きいサイズはありますか？', romaji: 'Mō sukoshi ōkii saizu wa arimasu ka?' },
         { cn: '有其他顏色嗎？', jp: '他の色はありますか？', romaji: 'Hoka no iro wa arimasu ka?' },
         { cn: '可以試穿嗎？', jp: '試着してもいいですか？', romaji: 'Shichaku shite mo ii desu ka?' },
+        { cn: '請問有試穿用的面罩嗎？', jp: 'フェイスカバーはありますか？', romaji: 'Feisukabā wa arimasu ka?' },
       ]
     },
     {
@@ -223,25 +237,40 @@ const JapanesePhraseWidget = () => {
   ];
 
   const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Cancel previous speech
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.85; // Slightly slower for clarity
-      window.speechSynthesis.speak(utterance);
-    } else {
+    if (!('speechSynthesis' in window)) {
       alert("您的瀏覽器不支援發音功能");
+      return;
     }
+
+    // 解決 iOS 甚至會出現怪聲或沒聲音的問題：
+    // 1. 強制取消上一次發音
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // 2. 精準抓取日文語音包 (這是關鍵！不然會用英文語音硬唸日文變怪聲)
+    const jpVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang.includes('ja'));
+    
+    if (jpVoice) {
+      utterance.voice = jpVoice;
+    }
+    
+    utterance.lang = 'ja-JP';
+    utterance.rate = 1; // iOS 建議用原速，避免變調
+    utterance.volume = 1;
+
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
     <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 mb-8">
-      <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-bold text-stone-800 mb-1 flex items-center gap-2">
         <div className="bg-indigo-100 p-1.5 rounded-md text-indigo-700">
           <Languages className="w-5 h-5" />
         </div>
         手指日語 (點擊發音)
       </h3>
+      <p className="text-xs text-stone-400 mb-4 ml-1">🔊 沒聲音請檢查 iPhone 是否開了靜音模式</p>
 
       <div className="space-y-6">
         {categories.map((cat) => {
