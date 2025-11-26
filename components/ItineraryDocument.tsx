@@ -1,9 +1,57 @@
 import React from 'react';
-import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock } from 'lucide-react';
+import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind } from 'lucide-react';
+
+// --- Weather Data (Historical Average for Late Nov/Early Dec in Kyoto/Osaka) ---
+const WEATHER_DATA: Record<string, { loc: string, tempHigh: number, tempLow: number, condition: string, icon: any, precip: number, note: string }> = {
+  day1: { loc: 'Kyoto', tempHigh: 15, tempLow: 7, condition: 'Sunny', icon: Sun, precip: 10, note: '早晚溫差大，建議洋蔥式穿搭' },
+  day2: { loc: 'Kyoto', tempHigh: 14, tempLow: 5, condition: 'Partly Cloudy', icon: CloudSun, precip: 20, note: '清晨山區較冷，必備圍巾' },
+  day3: { loc: 'Arashiyama', tempHigh: 13, tempLow: 6, condition: 'Cloudy', icon: Cloud, precip: 30, note: '嵐山風大，建議戴帽子' },
+  day4: { loc: 'Minoh (Osaka)', tempHigh: 14, tempLow: 6, condition: 'Sunny', icon: Sun, precip: 0, note: '適合健行的乾爽好天氣' },
+  day5: { loc: 'Osaka', tempHigh: 16, tempLow: 8, condition: 'Sunny', icon: ThermometerSun, precip: 10, note: '市區溫暖，舒適的移動日' },
+};
 
 // --- Reusable Components ---
 
-const DayHeader = ({ day, date, title, tags, accommodation }: { day: string, date: string, title: string, tags: string[], accommodation?: string }) => (
+const WeatherWidget = ({ dayId }: { dayId: string }) => {
+  const data = WEATHER_DATA[dayId];
+  if (!data) return null;
+
+  const Icon = data.icon;
+
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-100 rounded-xl p-3 mb-5 flex items-center justify-between shadow-sm animate-fade-in">
+      <div className="flex items-center gap-3">
+        <div className="bg-white p-2 rounded-full shadow-sm text-amber-500">
+          <Icon className="w-6 h-6" />
+        </div>
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-bold text-stone-800">{data.loc}</span>
+            <span className="text-xs text-stone-500 font-medium">{data.condition}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-bold text-stone-800">{data.tempHigh}°</span>
+            <span className="text-stone-400">/</span>
+            <span className="text-stone-600">{data.tempLow}°C</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex flex-col items-end gap-1 text-xs text-stone-600">
+        <div className="flex items-center gap-1 bg-white/60 px-2 py-0.5 rounded-full">
+          <Umbrella className="w-3 h-3 text-blue-500" />
+          <span>{data.precip}%</span>
+        </div>
+        <div className="flex items-center gap-1 bg-white/60 px-2 py-0.5 rounded-full">
+          <Wind className="w-3 h-3 text-stone-400" />
+          <span>{data.note}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DayHeader = ({ dayId, day, date, title, tags, accommodation }: { dayId?: string, day: string, date: string, title: string, tags: string[], accommodation?: string }) => (
   <div className="mb-6 animate-fade-in">
     <div className="flex items-center gap-3 mb-2">
       <span className="bg-red-700 text-white px-3 py-1 rounded-md font-bold text-lg shadow-sm">
@@ -15,6 +63,9 @@ const DayHeader = ({ day, date, title, tags, accommodation }: { day: string, dat
       <CalendarClock className="w-4 h-4"/>
       {date}
     </div>
+
+    {/* Weather Widget Inserted Here */}
+    {dayId && <WeatherWidget dayId={dayId} />}
     
     <div className="flex flex-wrap gap-2 mb-4 text-sm text-stone-600">
       {tags.map((tag, i) => (
@@ -109,6 +160,7 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
       {activeTab === 'day1' && (
         <div className="animate-slide-up">
            <DayHeader 
+            dayId="day1"
             day="DAY 1" 
             date="11/29 (五)" 
             title="啟程・前往京都" 
@@ -162,6 +214,7 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
       {activeTab === 'day2' && (
         <div className="animate-slide-up">
           <DayHeader 
+            dayId="day2"
             day="DAY 2" 
             date="11/30 (六)" 
             title="京都：清水寺 & 祇園" 
@@ -221,6 +274,7 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
       {activeTab === 'day3' && (
         <div className="animate-slide-up">
           <DayHeader 
+            dayId="day3"
             day="DAY 3" 
             date="12/01 (日)" 
             title="嵐山・teamLab・移動至大阪" 
@@ -277,6 +331,7 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
       {activeTab === 'day4' && (
         <div className="animate-slide-up">
           <DayHeader 
+            dayId="day4"
             day="DAY 4" 
             date="12/02 (一)" 
             title="箕面勝尾寺・梅田購物・夜景" 
@@ -326,6 +381,7 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
       {activeTab === 'day5' && (
         <div className="animate-slide-up">
           <DayHeader 
+            dayId="day5"
             day="DAY 5" 
             date="12/03 (二)" 
             title="大阪 → 溫暖的家" 
@@ -358,7 +414,7 @@ const ItineraryDocument = ({ activeTab }: { activeTab: string }) => {
                 <CheckSquare className="w-5 h-5 text-red-700"/> 物品檢查表
               </h3>
               <div className="space-y-3">
-                {['護照 (效期6個月+)', '身分證', 'VJW QR Code 截圖', '網卡/漫遊 開通', '日幣現金 (5-7萬)', '信用卡 (2張)', '好走的球鞋', '行動電源', '個人藥品'].map(item => (
+                {['護照 (效期6個月+)', '身分證', 'VJW QR Code 截圖', '網卡/漫遊 開通', '日幣現金 (5-7萬)', '信用卡 (2張)', '好走的球鞋', '行動電源', '手機充電器/充電線', '個人藥品'].map(item => (
                   <label key={item} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-stone-100 shadow-sm">
                     <input type="checkbox" className="w-5 h-5 text-red-600 rounded focus:ring-red-500" />
                     <span className="text-stone-700 font-medium">{item}</span>
