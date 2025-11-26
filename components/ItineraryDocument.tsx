@@ -54,7 +54,7 @@ const WeatherWidget = ({ dayId }: { dayId: string }) => {
 const DayHeader = ({ dayId, day, date, title, tags, accommodation }: { dayId?: string, day: string, date: string, title: string, tags: string[], accommodation?: string }) => (
   <div className="mb-6 animate-fade-in">
     <div className="flex items-center gap-3 mb-2">
-      <span className="bg-red-700 text-white px-3 py-1 rounded-md font-bold text-lg shadow-sm">
+      <span className="bg-red-700 text-white px-3 py-1 rounded-md font-bold text-lg shadow-sm whitespace-nowrap shrink-0">
         {day}
       </span>
       <h2 className="text-2xl font-bold text-stone-800 leading-tight">{title}</h2>
