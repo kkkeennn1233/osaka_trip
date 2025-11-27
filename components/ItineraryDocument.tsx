@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind, Calculator, Languages, Volume2, RefreshCw, ShoppingCart, Train, Shirt, CreditCard, HelpCircle, Coffee, Camera, Sunset, Moon, Gift, Home, Plane, Ticket, Trees, Mountain, Phone, Ambulance, ShieldAlert, Timer, Check, Edit3, Plus, Trash2, ArrowUp, ArrowDown, Save, RotateCcw, ImagePlus, Sparkles, XCircle, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind, Calculator, Languages, Volume2, RefreshCw, ShoppingCart, Train, Shirt, CreditCard, HelpCircle, Coffee, Camera, Sunset, Moon, Gift, Home, Plane, Ticket, Trees, Mountain, Phone, Ambulance, ShieldAlert, Timer, Check, Edit3, Plus, Trash2, ArrowUp, ArrowDown, Save, RotateCcw, ImagePlus, Sparkles, XCircle, Search, ChevronDown, ChevronUp, ExternalLink, Grid } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 import { useScheduleDatabase, ScheduleItem } from './ScheduleDatabase';
 import { GoogleGenAI } from "@google/genai";
@@ -90,12 +90,13 @@ const CountdownWidget = () => {
   );
 };
 
-// New Structure for Menu Items
+// New Structure for Menu Items with Coordinates
 interface MenuItem {
   name_jp: string;
   name_zh: string;
   price: string;
   desc: string;
+  box_2d?: [number, number, number, number]; // [ymin, xmin, ymax, xmax] relative to 1000x1000 grid
 }
 
 interface MenuCategory {
@@ -109,6 +110,12 @@ const MenuTranslator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   
+  // Interactive highlighting state
+  const [highlightedItem, setHighlightedItem] = useState<MenuItem | null>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
   const { currentTheme } = useTheme();
   const p = currentTheme.primary;
   const n = currentTheme.neutral;
@@ -121,6 +128,8 @@ const MenuTranslator = () => {
         setImage(reader.result as string);
         setMenuData(null); // Clear previous
         setError('');
+        setHighlightedItem(null);
+        itemRefs.current.clear();
       };
       reader.readAsDataURL(file);
     }
@@ -142,19 +151,22 @@ const MenuTranslator = () => {
 
       const prompt = `
         您是專業的日文菜單翻譯員。請分析這張菜單圖片。
-        請根據內容將菜色分類（例如：飲料、炸物、生魚片、主食、甜點等）。
-        若只有一種分類，請設為「菜單內容」。
         
-        請回傳一個純 JSON Array (不要用 Markdown code block)，格式如下：
+        【重要：圖片可能是手寫日文、直式書寫 (Tategaki)】
+        請仔細辨識手寫漢字與假名，若是直式書寫，請由右至左閱讀。
+        對於直式書寫的框選座標 (box_2d)，請務必回傳【緊貼文字】的瘦長型矩形，不要包含價格或其他空白區域。
+        
+        請將菜色整理成類似表格的結構，並回傳純 JSON Array (不要用 Markdown code block)，格式如下：
         [
           {
-            "category": "類別名稱",
+            "category": "類別名稱 (如: 刺身、燒物、飲料)",
             "items": [
               {
-                "name_jp": "日文菜名",
+                "name_jp": "日文菜名 (請準確辨識)",
                 "name_zh": "繁體中文翻譯",
-                "price": "價格 (含貨幣符號，如 ¥1000，若無則留空)",
-                "desc": "簡短的一句話口感或食材說明 (繁體中文)"
+                "price": "價格 (含貨幣符號)",
+                "desc": "口感或食材簡介",
+                "box_2d": [ymin, xmin, ymax, xmax] // 請盡量估算該菜名在圖片中的位置 (0-1000 為單位的整數)
               }
             ]
           }
@@ -176,7 +188,9 @@ const MenuTranslator = () => {
 
       const text = response.text;
       if (text) {
-        const parsedData = JSON.parse(text);
+        // Clean up markdown if present (just in case)
+        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsedData = JSON.parse(cleanText);
         setMenuData(parsedData);
       } else {
         throw new Error("Empty response");
@@ -184,7 +198,7 @@ const MenuTranslator = () => {
       
     } catch (err: any) {
       console.error("Translation error:", err);
-      setError("翻譯失敗，請確認 API Key 或圖片清晰度。");
+      setError("翻譯失敗，請確認 API Key 或圖片清晰度 (手寫字體較難辨識)。");
     } finally {
       setLoading(false);
     }
@@ -194,17 +208,37 @@ const MenuTranslator = () => {
     setImage(null);
     setMenuData(null);
     setError('');
+    setHighlightedItem(null);
+  };
+
+  const handleItemClick = (item: MenuItem, categoryIndex: number, itemIndex: number) => {
+    setHighlightedItem(item);
+    // Logic to scroll image to view (if we had complex zoom)
+    // Logic to highlight text
+  };
+
+  // When clicking a box on image, scroll list to that item
+  const handleBoxClick = (item: MenuItem, categoryIndex: number, itemIndex: number) => {
+    setHighlightedItem(item);
+    const key = `${categoryIndex}-${itemIndex}`;
+    const el = itemRefs.current.get(key);
+    if (el && listContainerRef.current) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a temporary flash effect class
+        el.classList.add('ring-2', 'ring-offset-2', `ring-${p}-500`);
+        setTimeout(() => el.classList.remove('ring-2', 'ring-offset-2', `ring-${p}-500`), 2000);
+    }
   };
 
   return (
-    <div className={`bg-${n}-50 border border-${n}-200 rounded-xl overflow-hidden mb-8 print:hidden flex flex-col`}>
+    <div className={`bg-${n}-50 border border-${n}-200 rounded-xl overflow-hidden mb-8 print:hidden flex flex-col h-[85vh]`}>
       {/* Header */}
-      <div className={`p-4 border-b border-${n}-100 bg-white/50 backdrop-blur-sm flex justify-between items-center`}>
+      <div className={`p-4 border-b border-${n}-100 bg-white/50 backdrop-blur-sm flex justify-between items-center shrink-0`}>
         <h3 className={`text-lg font-bold text-${n}-800 flex items-center gap-2`}>
           <div className={`bg-${p}-100 p-1.5 rounded-md text-${p}-700`}>
-            <Camera className="w-5 h-5" />
+            <Grid className="w-5 h-5" />
           </div>
-          菜單翻譯 (對照模式)
+          菜單翻譯・表格對照
         </h3>
         {image && (
           <button onClick={clearImage} className={`text-xs text-${n}-500 hover:text-red-500 flex items-center gap-1`}>
@@ -214,40 +248,69 @@ const MenuTranslator = () => {
       </div>
 
       {!image ? (
-        <div className="p-5">
-           <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-${n}-300 rounded-xl cursor-pointer bg-white hover:bg-${n}-50 transition-all group`}>
+        <div className="p-5 flex-1 flex flex-col items-center justify-center">
+           <label className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-${n}-300 rounded-xl cursor-pointer bg-white hover:bg-${n}-50 transition-all group`}>
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <div className={`bg-${n}-100 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform`}>
-                 <ImagePlus className={`w-8 h-8 text-${n}-500`} />
+              <div className={`bg-${n}-100 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform`}>
+                 <ImagePlus className={`w-10 h-10 text-${n}-500`} />
               </div>
-              <p className={`text-sm text-${n}-600 font-bold`}>點擊拍照或上傳菜單</p>
-              <p className={`text-xs text-${n}-400 mt-1`}>支援手寫日文菜單辨識</p>
+              <p className={`text-lg text-${n}-600 font-bold mb-2`}>拍下菜單</p>
+              <p className={`text-sm text-${n}-400`}>支援手寫、直式日文辨識</p>
             </div>
             <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
           </label>
         </div>
       ) : (
-        <div className="flex flex-col h-full">
-          {/* TOP: Image View */}
-          <div className="relative bg-black/5 min-h-[200px] max-h-[40vh] overflow-auto border-b border-gray-200">
-            <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-md z-10">
-              原始圖片
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* TOP: Image View (40%) */}
+          <div className="relative bg-stone-900 h-[40%] overflow-hidden border-b border-gray-200 group shrink-0" ref={imageContainerRef}>
+            <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-md z-20 pointer-events-none">
+              原圖 (可點選紅框對照)
             </div>
-            <img 
-              src={image} 
-              alt="Menu Original" 
-              className="w-full h-full object-contain mx-auto" 
-            />
+            <div className="w-full h-full relative">
+                <img 
+                src={image} 
+                alt="Menu Original" 
+                className="w-full h-full object-contain mx-auto" 
+                />
+                {/* Render Bounding Boxes */}
+                {menuData && menuData.map((cat, catIdx) => 
+                    cat.items.map((item, itemIdx) => {
+                        if (!item.box_2d) return null;
+                        const [ymin, xmin, ymax, xmax] = item.box_2d;
+                        const isHighlighted = highlightedItem === item;
+                        
+                        return (
+                            <div
+                                key={`${catIdx}-${itemIdx}`}
+                                onClick={() => handleBoxClick(item, catIdx, itemIdx)}
+                                className={`
+                                  absolute transition-all cursor-pointer z-10 rounded-sm mix-blend-multiply
+                                  ${isHighlighted 
+                                    ? 'bg-yellow-400/60 shadow-[0_0_0_2px_rgba(239,68,68,1)]' 
+                                    : 'bg-yellow-300/30 hover:bg-yellow-400/50'}
+                                `}
+                                style={{
+                                    top: `${ymin / 10}%`,
+                                    left: `${xmin / 10}%`,
+                                    height: `${(ymax - ymin) / 10}%`,
+                                    width: `${(xmax - xmin) / 10}%`,
+                                }}
+                            />
+                        )
+                    })
+                )}
+            </div>
           </div>
 
-          {/* BOTTOM: Translation View */}
-          <div className="flex-1 bg-white min-h-[300px]">
+          {/* BOTTOM: Translation Grid View (60%) */}
+          <div className="flex-1 bg-white overflow-y-auto relative" ref={listContainerRef}>
              {!menuData && !loading && !error && (
-               <div className="p-6 text-center">
-                 <p className="text-gray-500 text-sm mb-4">照片已載入，準備好進行 AI 分析了嗎？</p>
+               <div className="p-8 text-center h-full flex flex-col items-center justify-center">
+                 <p className="text-gray-500 text-sm mb-6">照片已載入，準備好進行 AI 分析了嗎？</p>
                  <button
                   onClick={handleTranslate}
-                  className={`w-full py-3 bg-${p}-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-${p}-700 active:scale-95 transition-all shadow-md`}
+                  className={`w-full max-w-xs py-3 bg-${p}-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-${p}-700 active:scale-95 transition-all shadow-md`}
                 >
                   <Sparkles className="w-5 h-5" />
                   開始辨識與翻譯
@@ -256,64 +319,91 @@ const MenuTranslator = () => {
              )}
 
              {loading && (
-               <div className="p-10 flex flex-col items-center justify-center space-y-4 text-gray-500 h-full">
-                 <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-                 <div className="text-center">
-                   <p className="font-bold text-gray-700">AI 正在閱讀菜單...</p>
-                   <p className="text-xs mt-1">正在辨識日文、翻譯並整理排版</p>
+               <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
+                 <div className="relative">
+                    <div className={`w-12 h-12 border-4 border-${p}-200 border-t-${p}-600 rounded-full animate-spin`}></div>
+                 </div>
+                 <div className="text-center animate-pulse">
+                   <p className={`font-bold text-${p}-800 text-lg`}>AI 正在閱讀菜單...</p>
+                   <p className="text-xs text-gray-500 mt-1">正在解析手寫字體與直式排版</p>
                  </div>
                </div>
              )}
              
              {error && (
                 <div className="p-6">
-                  <div className="p-4 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
+                  <div className="p-4 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-100">
                     <AlertCircle className="w-5 h-5 shrink-0" /> {error}
                   </div>
-                  <button onClick={handleTranslate} className="mt-4 w-full py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-600">重試</button>
+                  <button onClick={handleTranslate} className="mt-4 w-full py-3 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">重試</button>
                 </div>
              )}
 
              {menuData && (
-               <div className="p-4 space-y-6 animate-fade-in bg-white pb-10">
-                 {/* Translation Header */}
-                 <div className="flex items-center justify-center gap-2 text-gray-400 text-xs uppercase tracking-widest mb-2">
-                   <ChevronDown className="w-3 h-3" /> 數位中文菜單 <ChevronDown className="w-3 h-3" />
-                 </div>
-
-                 {menuData.map((cat, idx) => (
-                   <div key={idx} className="space-y-3">
-                     <h4 className={`font-bold text-lg text-${p}-800 border-b-2 border-${p}-100 pb-1 flex items-center justify-between`}>
+               <div className="p-4 space-y-8 pb-20">
+                 {menuData.map((cat, catIdx) => (
+                   <div key={catIdx} className="space-y-3">
+                     <h4 className={`font-bold text-lg text-${p}-800 border-b-2 border-${p}-100 pb-2 flex items-center gap-2 sticky top-0 bg-white z-10 py-2 shadow-sm`}>
+                       <span className={`bg-${p}-600 w-1.5 h-6 rounded-full`}></span>
                        {cat.category}
-                       <span className="text-xs font-normal text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{cat.items.length} 品項</span>
                      </h4>
-                     <div className="grid gap-3">
-                       {cat.items.map((item, i) => (
-                         <div key={i} className="flex flex-col bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                           {/* Decorative accent */}
-                           <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${p}-200 group-hover:bg-${p}-500 transition-colors`}></div>
-                           
-                           <div className="pl-3 flex justify-between items-start gap-2">
-                             <div>
-                               <div className="font-bold text-gray-800 text-base">{item.name_zh}</div>
-                               <div className="text-xs text-gray-400 font-mono mt-0.5">{item.name_jp}</div>
+                     
+                     {/* GRID LAYOUT - Mimics menu table */}
+                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                       {cat.items.map((item, itemIdx) => {
+                         const isHighlighted = highlightedItem === item;
+                         return (
+                           <div 
+                             key={`${catIdx}-${itemIdx}`}
+                             ref={(el) => {
+                                 if (el) itemRefs.current.set(`${catIdx}-${itemIdx}`, el);
+                             }}
+                             onClick={() => handleItemClick(item, catIdx, itemIdx)}
+                             className={`
+                               flex flex-col justify-between
+                               border-2 rounded-lg p-3 relative bg-white transition-all duration-300
+                               ${isHighlighted 
+                                 ? `border-${p}-500 shadow-md scale-[1.02] z-10` 
+                                 : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}
+                             `}
+                           >
+                             <div className="mb-2">
+                               <div className="font-bold text-gray-900 text-lg leading-tight mb-1">{item.name_jp}</div>
+                               <div className={`text-sm text-${p}-700 font-medium`}>{item.name_zh}</div>
                              </div>
-                             {item.price && (
-                               <div className="font-mono font-bold text-lg text-amber-600 shrink-0 bg-amber-50 px-2 rounded">
-                                 {item.price}
-                               </div>
-                             )}
+                             
+                             <div className="space-y-2">
+                                {item.price && (
+                                    <div className="text-right font-mono font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded inline-block self-end text-sm">
+                                    {item.price}
+                                    </div>
+                                )}
+                                
+                                <a 
+                                    href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(item.name_jp + ' ' + '料理')}`} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className={`
+                                        flex items-center justify-center gap-1.5 w-full py-1.5 
+                                        rounded border border-${n}-200 bg-${n}-50 text-${n}-600 
+                                        text-xs font-bold hover:bg-${p}-50 hover:text-${p}-600 hover:border-${p}-200 transition-colors
+                                    `}
+                                >
+                                    <Search className="w-3 h-3" />
+                                    看圖片
+                                </a>
+                             </div>
                            </div>
-                           {item.desc && (
-                             <div className="pl-3 mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded leading-relaxed">
-                               💡 {item.desc}
-                             </div>
-                           )}
-                         </div>
-                       ))}
+                         );
+                       })}
                      </div>
                    </div>
                  ))}
+                 
+                 <div className="text-center text-xs text-gray-400 pt-4 pb-8">
+                    AI 辨識可能會有誤差，請以實際菜單為主
+                 </div>
                </div>
              )}
           </div>
@@ -487,6 +577,18 @@ const JapanesePhraseWidget = () => {
         { cn: '請給我水。', jp: 'お水をお願いします。', romaji: 'Omizu o onegaishimasu.' },
         { cn: '不好意思，結帳。', jp: 'すみません、お会計をお願いします。', romaji: 'Sumimasen, okaikei o onegaishimasu.' },
         { cn: '很好吃！', jp: '美味しかったです！', romaji: 'Oishikatta desu!' },
+      ]
+    },
+    {
+      id: 'conbini', title: '超商/超市 (加熱/付款)', icon: Coffee, color: 'text-teal-600 bg-teal-50',
+      phrases: [
+        { cn: '購物袋 (Reji-bukuro)', jp: 'レジ袋', romaji: 'Rejibukuro' },
+        { cn: '(店員) 需要加熱嗎？', jp: '温めますか？', romaji: 'Atatame masu ka?', isQuestion: true },
+        { cn: '請幫我加熱。', jp: '温めてください。', romaji: 'Atatamete kudasai.' },
+        { cn: '(店員) 請問怎麼付款？', jp: 'お支払いはどうなさいますか？', romaji: 'Oshiharai wa dō nasaimasu ka?', isQuestion: true },
+        { cn: '我要用優惠券。', jp: 'クーポンでお願いします。', romaji: 'Kūpon de onegaishimasu.' },
+        { cn: '我付現。', jp: '現金でお願いします。', romaji: 'Genkin de onegaishimasu.' },
+        { cn: '我要刷卡。', jp: 'カードでお願いします。', romaji: 'Kādo de onegaishimasu.' },
       ]
     },
     {
