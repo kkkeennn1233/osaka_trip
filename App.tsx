@@ -34,15 +34,8 @@ export default function App() {
   };
 
   const handlePrint = () => {
-    // 提供明確的用戶回饋，解決 "按了沒反應" 的疑慮
-    const isConfirmed = window.confirm("即將開啟列印/PDF 預覽視窗。\n\n💡 提示：\n1. 請在目的地選擇「另存為 PDF」。\n2. 若手機沒有自動彈出視窗，請使用瀏覽器選單的「分享」->「列印」。\n\n是否繼續？");
-    
-    if (isConfirmed) {
-      // 延遲執行以確保 UI 狀態更新，並避開某些瀏覽器的同步阻塞問題
-      setTimeout(() => {
-        window.print();
-      }, 100);
-    }
+    // 直接列印，減少阻擋
+    window.print();
   };
 
   return (
@@ -94,16 +87,16 @@ export default function App() {
             <p className="text-stone-500">日期：11/29 (五) ~ 12/03 (二)</p>
           </div>
 
-          {/* Web View Container */}
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-stone-100 min-h-[60vh] print:shadow-none print:border-none print:min-h-0 print:rounded-none">
+          {/* Web View Container - print:overflow-visible is CRITICAL for multipage PDF */}
+          <div className="bg-white/95 shadow-lg rounded-xl overflow-hidden border border-stone-100 min-h-[60vh] print:shadow-none print:border-none print:min-h-0 print:rounded-none print:overflow-visible print:bg-white">
             <div className="p-5 sm:p-8 print:p-0">
               <ItineraryDocument activeTab={activeTab} />
             </div>
           </div>
           
           {/* Print Footer Instructions */}
-           <div className="hidden print:block mt-8 text-center text-xs text-stone-400 border-t border-stone-200 pt-4">
-            <p>本手冊由網頁自動生成。建議使用 A4 紙張列印。</p>
+           <div className="hidden print:block mt-8 text-center text-xs text-stone-400 border-t border-stone-200 pt-4 break-before-avoid">
+            <p>本手冊由網頁自動生成。祝旅途愉快！</p>
           </div>
         </div>
       </main>
@@ -152,7 +145,7 @@ export default function App() {
         }
         @media print {
           @page {
-            margin: 10mm;
+            margin: 15mm;
             size: A4 portrait;
           }
           /* Reset Styles for Print to ensure pages break correctly */
@@ -168,16 +161,19 @@ export default function App() {
              display: block !important;
              position: static !important;
              width: 100% !important;
+             height: auto !important;
+             overflow: visible !important;
           }
           
           /* Define the page break class */
-          .break-before-page {
-            page-break-before: always !important;
-            break-before: page !important;
+          .break-after-page {
+            page-break-after: always !important;
+            break-after: page !important;
             display: block !important;
-            margin-top: 0 !important;
-            padding-top: 20px !important;
+            height: 1px !important;
+            width: 100% !important;
             clear: both !important;
+            margin-bottom: 20px !important;
           }
           
           .break-inside-avoid {

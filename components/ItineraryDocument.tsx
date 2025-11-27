@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind, Calculator, Languages, Volume2, RefreshCw, ShoppingCart, Train, Shirt, CreditCard, HelpCircle, Coffee, Camera, Sunset, Moon, Gift, Home, Plane, Ticket, Trees, Mountain } from 'lucide-react';
+import { MapPin, Utensils, ShoppingBag, Hotel, AlertCircle, CheckSquare, CloudSun, CalendarClock, Sun, Cloud, ThermometerSun, Umbrella, Wind, Calculator, Languages, Volume2, RefreshCw, ShoppingCart, Train, Shirt, CreditCard, HelpCircle, Coffee, Camera, Sunset, Moon, Gift, Home, Plane, Ticket, Trees, Mountain, Phone, Ambulance, ShieldAlert, Timer, Check } from 'lucide-react';
 
 // --- Weather Data (Historical Average) ---
 const WEATHER_DATA: Record<string, { loc: string, tempHigh: number, tempLow: number, condition: string, icon: any, precip: number, note: string }> = {
@@ -19,7 +19,7 @@ const WeatherWidget = ({ dayId }: { dayId: string }) => {
   const Icon = data.icon;
 
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-100 rounded-xl p-3 mb-5 flex items-center justify-between shadow-sm animate-fade-in print:border-stone-300 print:bg-none print:shadow-none">
+    <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-100 rounded-xl p-3 mb-5 flex items-center justify-between shadow-sm animate-fade-in print:border-stone-300 print:bg-none print:shadow-none break-inside-avoid">
       <div className="flex items-center gap-3">
         <div className="bg-white p-2 rounded-full shadow-sm text-amber-500 print:hidden">
           <Icon className="w-6 h-6" />
@@ -46,6 +46,82 @@ const WeatherWidget = ({ dayId }: { dayId: string }) => {
           <Wind className="w-3 h-3 text-stone-400 print:text-stone-800" />
           <span>{data.note}</span>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const CountdownWidget = () => {
+  const [daysLeft, setDaysLeft] = useState(0);
+  
+  useEffect(() => {
+    const targetDate = new Date('2025-11-29T00:00:00');
+    const now = new Date();
+    const diffTime = targetDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    setDaysLeft(diffDays);
+  }, []);
+
+  if (daysLeft < 0) return null;
+
+  return (
+    <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-center justify-between print:hidden">
+      <div className="flex items-center gap-3">
+        <div className="bg-red-100 p-2 rounded-full text-red-600">
+          <Timer className="w-5 h-5" />
+        </div>
+        <div>
+          <div className="text-xs text-red-600 font-bold uppercase">Trip Countdown</div>
+          <div className="text-red-900 font-medium text-sm">距離出發還有</div>
+        </div>
+      </div>
+      <div className="text-3xl font-bold text-red-600 font-mono">
+        {daysLeft} <span className="text-sm text-red-400 font-sans">天</span>
+      </div>
+    </div>
+  );
+};
+
+const EmergencyWidget = () => {
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8 print:border-stone-300 print:bg-white break-inside-avoid">
+      <h3 className="text-lg font-bold text-red-800 mb-3 flex items-center gap-2">
+        <ShieldAlert className="w-5 h-5" />
+        緊急救援 (按一下撥打)
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <a href="tel:110" className="flex items-center justify-between bg-white p-3 rounded-lg border border-red-100 shadow-sm hover:bg-red-50 active:scale-95 transition-all text-left">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 p-1.5 rounded-full text-red-600"><Phone className="w-4 h-4"/></div>
+            <div>
+              <div className="font-bold text-stone-800">警察局</div>
+              <div className="text-xs text-stone-500">遇到事故/遺失</div>
+            </div>
+          </div>
+          <div className="text-xl font-bold text-red-600 font-mono">110</div>
+        </a>
+        
+        <a href="tel:119" className="flex items-center justify-between bg-white p-3 rounded-lg border border-red-100 shadow-sm hover:bg-red-50 active:scale-95 transition-all text-left">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 p-1.5 rounded-full text-red-600"><Ambulance className="w-4 h-4"/></div>
+            <div>
+              <div className="font-bold text-stone-800">救護/消防</div>
+              <div className="text-xs text-stone-500">受傷/火災</div>
+            </div>
+          </div>
+          <div className="text-xl font-bold text-red-600 font-mono">119</div>
+        </a>
+
+        <a href="tel:+81-6-6227-8623" className="flex items-center justify-between bg-white p-3 rounded-lg border border-red-100 shadow-sm hover:bg-red-50 active:scale-95 transition-all text-left sm:col-span-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-1.5 rounded-full text-blue-600"><Home className="w-4 h-4"/></div>
+            <div>
+              <div className="font-bold text-stone-800">大阪辦事處 (急難救助)</div>
+              <div className="text-xs text-stone-500">護照遺失/重大事故</div>
+            </div>
+          </div>
+          <div className="text-sm font-bold text-blue-600 font-mono">+81-6-6227-8623</div>
+        </a>
       </div>
     </div>
   );
@@ -154,6 +230,25 @@ const JapanesePhraseWidget = () => {
 
   const categories = [
     {
+      id: 'dining', title: '餐廳用餐 (點餐/結帳)', icon: Utensils, color: 'text-amber-600 bg-amber-50',
+      phrases: [
+        { cn: '請給我菜單', jp: 'メニューをお願いします。', romaji: 'Menyū o onegaishimasu.' },
+        { cn: '請問有推薦的嗎？', jp: 'おすすめはありますか？', romaji: 'Osusume wa arimasu ka?' },
+        { cn: '我要這個。', jp: 'これをお願いします。', romaji: 'Kore o onegaishimasu.' },
+        { cn: '請給我水。', jp: 'お水をお願いします。', romaji: 'Omizu o onegaishimasu.' },
+        { cn: '不好意思，結帳。', jp: 'すみません、お会計をお願いします。', romaji: 'Sumimasen, okaikei o onegaishimasu.' },
+        { cn: '很好吃！', jp: '美味しかったです！', romaji: 'Oishikatta desu!' },
+      ]
+    },
+    {
+      id: 'transport', title: '交通移動 (車站/買票)', icon: Train, color: 'text-green-600 bg-green-50',
+      phrases: [
+        { cn: '請問車站在哪裡？', jp: '駅はどこですか？', romaji: 'Eki wa doko desu ka?' },
+        { cn: '這班車去京都嗎？', jp: 'この電車は京都に行きますか？', romaji: 'Kono densha wa Kyōto ni ikimasu ka?' },
+        { cn: '售票處在哪裡？', jp: '切符売り場はどこですか？', romaji: 'Kippu uriba wa doko desu ka?' },
+      ]
+    },
+    {
       id: 'shopping_q', title: '購物詢問 (尺寸/顏色/試穿)', icon: Shirt, color: 'text-indigo-600 bg-indigo-50',
       phrases: [
         { cn: '這個多少錢？', jp: 'これ、いくらですか？', romaji: 'Kore, ikura desu ka?' },
@@ -202,8 +297,12 @@ const JapanesePhraseWidget = () => {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    // 嘗試多種方式抓取日語語音
     const jpVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang.includes('ja'));
-    if (jpVoice) utterance.voice = jpVoice;
+    if (jpVoice) {
+      utterance.voice = jpVoice;
+    }
+    
     utterance.lang = 'ja-JP';
     utterance.rate = 1; 
     utterance.volume = 1;
@@ -299,7 +398,7 @@ const DayHeader = ({ dayId, day, date, title, tags, accommodation }: { dayId?: s
 );
 
 const ScheduleTable = ({ items }: { items: { time: string, title: string, desc: React.ReactNode, highlight?: boolean, link?: string }[] }) => (
-  <div className="mb-8 relative print:mb-4">
+  <div className="mb-8 relative print:mb-4 break-inside-avoid">
     <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-stone-200 print:border-l print:border-stone-300 print:bg-transparent"></div>
     <div className="space-y-6 print:space-y-4">
       {items.map((item, idx) => (
@@ -341,7 +440,7 @@ const SectionList = ({ title, icon: Icon, children }: { title: string, icon: any
 );
 
 const ListItem = ({ title, desc, link, note }: { title: string, desc?: string, link?: string, note?: string }) => (
-  <div className="flex flex-col gap-1 p-3 rounded-lg hover:bg-stone-50 transition-colors border border-transparent hover:border-stone-100 print:p-0 print:border-none">
+  <div className="flex flex-col gap-1 p-3 rounded-lg hover:bg-stone-50 transition-colors border border-transparent hover:border-stone-100 print:p-0 print:border-none break-inside-avoid">
     <div className="flex items-start justify-between gap-2">
       <div className="font-bold text-stone-800 flex items-center gap-2 text-sm">
         {title}
@@ -358,10 +457,58 @@ const ListItem = ({ title, desc, link, note }: { title: string, desc?: string, l
 );
 
 const InfoBox = ({ children }: { children?: React.ReactNode }) => (
-  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 text-sm text-blue-900 shadow-sm print:bg-white print:border-stone-300 print:text-black">
+  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 text-sm text-blue-900 shadow-sm print:bg-white print:border-stone-300 print:text-black break-inside-avoid">
     {children}
   </div>
 );
+
+// --- New Interactive Checklist Component ---
+const InteractiveChecklist = () => {
+  const initialItems = [
+    { id: 1, text: '護照 (效期6個月+)', checked: false },
+    { id: 2, text: '身分證', checked: false },
+    { id: 3, text: 'VJW QR Code', checked: false },
+    { id: 4, text: '網卡/漫遊', checked: false },
+    { id: 5, text: '日幣現金', checked: false },
+    { id: 6, text: '信用卡 (2張)', checked: false },
+    { id: 7, text: '好走的球鞋', checked: false },
+    { id: 8, text: '行動電源', checked: false },
+    { id: 9, text: '手機充電器 / 線', checked: false },
+    { id: 10, text: '個人藥品', checked: false },
+    { id: 11, text: '耳塞 (淺眠必備)', checked: false },
+  ];
+
+  const [items, setItems] = useState(initialItems);
+
+  const toggleItem = (id: number) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {items.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => toggleItem(item.id)}
+          className={`flex items-center gap-2 text-sm p-2 rounded border transition-all text-left
+            ${item.checked 
+              ? 'bg-blue-100 border-blue-200 text-blue-800' 
+              : 'bg-white border-blue-100 text-stone-700 hover:bg-blue-50'
+            } print:border-stone-300`}
+        >
+          <div className={`w-4 h-4 border rounded-sm flex items-center justify-center transition-colors
+            ${item.checked ? 'bg-blue-500 border-blue-500' : 'border-blue-300 bg-white'}
+          `}>
+            {item.checked && <Check className="w-3 h-3 text-white" />}
+          </div>
+          <span className={item.checked ? 'line-through opacity-70' : ''}>{item.text}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
 
 // --- Content Components ---
 
@@ -375,6 +522,9 @@ const Day1Content = () => (
       tags={['移動日', 'Haruka 特急', '清水寺住宿']}
       accommodation="RESI STAY 五条坂 (清水寺山腳)"
     />
+    
+    <CountdownWidget />
+
     <InfoBox>
       <h4 className="font-bold mb-2 flex items-center gap-2 text-blue-800 print:text-black"><AlertCircle className="w-4 h-4"/> 旅遊小幫手</h4>
       <ul className="space-y-2">
@@ -559,22 +709,16 @@ const ToolsContent = () => (
     <DayHeader 
       day="TOOLS" 
       date="實用工具" 
-      title="匯率 / 日語 / 檢查表" 
-      tags={['血拼神器', '生存日語', '清單']}
+      title="匯率 / 日語 / 救援" 
+      tags={['血拼神器', '生存日語', '緊急電話']}
     />
     <ExchangeRateWidget />
     <JapanesePhraseWidget />
     <InfoBox>
       <h4 className="font-bold mb-3 flex items-center gap-2 text-blue-800 print:text-black"><CheckSquare className="w-4 h-4"/> 必備物品檢查表</h4>
-      <div className="grid grid-cols-2 gap-2 text-stone-700">
-        {['護照 (效期6個月+)', '身分證', 'VJW QR Code', '網卡/漫遊', '日幣現金', '信用卡 (2張)', '好走的球鞋', '行動電源', '手機充電器 / 線', '個人藥品'].map((item, i) => (
-          <div key={i} className="flex items-center gap-2 text-sm bg-white p-2 rounded border border-blue-100 print:border-stone-300">
-            <div className="w-4 h-4 border-2 border-blue-200 rounded-sm print:border-stone-400"></div>
-            {item}
-          </div>
-        ))}
-      </div>
+      <InteractiveChecklist />
     </InfoBox>
+    <EmergencyWidget />
   </>
 );
 
@@ -584,31 +728,47 @@ export default function ItineraryDocument({ activeTab }: { activeTab: string }) 
   // Logic: 
   // - On Screen: Display ONLY the active tab content using conditional CSS classes (block/hidden).
   // - On Print: Use 'print:block' on ALL tab contents so everything is printed sequentially.
-  // - We wrap Day 2-5 & Tools in 'break-before-page' to force pagination on print.
-
+  // - We wrap Day 2-5 & Tools in a div that triggers 'break-after-page' AFTER the previous content has rendered.
+  
   return (
     <div>
+      {/* Day 1 */}
       <div className={activeTab === 'day1' ? 'block' : 'hidden print:block'}>
         <Day1Content />
+        {/* Print break after Day 1 */}
+        <div className="break-after-page"></div>
       </div>
 
-      <div className={`${activeTab === 'day2' ? 'block' : 'hidden print:block'} break-before-page`}>
+      {/* Day 2 */}
+      <div className={activeTab === 'day2' ? 'block' : 'hidden print:block'}>
         <Day2Content />
+        {/* Print break after Day 2 */}
+        <div className="break-after-page"></div>
       </div>
 
-      <div className={`${activeTab === 'day3' ? 'block' : 'hidden print:block'} break-before-page`}>
+      {/* Day 3 */}
+      <div className={activeTab === 'day3' ? 'block' : 'hidden print:block'}>
         <Day3Content />
+        {/* Print break after Day 3 */}
+        <div className="break-after-page"></div>
       </div>
 
-      <div className={`${activeTab === 'day4' ? 'block' : 'hidden print:block'} break-before-page`}>
+      {/* Day 4 */}
+      <div className={activeTab === 'day4' ? 'block' : 'hidden print:block'}>
         <Day4Content />
+        {/* Print break after Day 4 */}
+        <div className="break-after-page"></div>
       </div>
 
-      <div className={`${activeTab === 'day5' ? 'block' : 'hidden print:block'} break-before-page`}>
+      {/* Day 5 */}
+      <div className={activeTab === 'day5' ? 'block' : 'hidden print:block'}>
         <Day5Content />
+        {/* Print break after Day 5 */}
+        <div className="break-after-page"></div>
       </div>
 
-      <div className={`${activeTab === 'tools' ? 'block' : 'hidden print:block'} break-before-page`}>
+      {/* Tools */}
+      <div className={activeTab === 'tools' ? 'block' : 'hidden print:block'}>
         <ToolsContent />
       </div>
     </div>
